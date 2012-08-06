@@ -116,7 +116,7 @@ class email_form extends moodleform {
         $select_filter = new html_table_cell();
         $select_filter->text = html_writer::tag('select',
             array_reduce($this->_customdata['selected'], array($this, 'reduce_users'), ''),
-            array('id' => 'mail_users', 'multiple' => 'multiple', 'size' => 30));
+            array('id' => 'mail_users', 'multiple' => 'multiple', 'size' => 20));
 
         $embed = function ($text, $id) {
             return html_writer::tag('p',
@@ -146,13 +146,13 @@ class email_form extends moodleform {
             array('class' => 'object_labels')
         ) . html_writer::tag('div',
             html_writer::select($group_options, '', 'all', null,
-            array('id' => 'groups', 'multiple' => 'multiple', 'size' => 5))
+            array('id' => 'groups', 'multiple' => 'multiple', 'size' => 3))
         ) . html_writer::tag('div',
             quickmail::_s('potential_users'),
             array('class' => 'object_labels')
         ) . html_writer::tag('div',
             html_writer::select($user_options, '', '', null,
-            array('id' => 'from_users', 'multiple' => 'multiple', 'size' => 20))
+            array('id' => 'from_users', 'multiple' => 'multiple', 'size' => 10))
         );
 
         $table->data[] = new html_table_row(array($selected_required_label, $role_filter_label));
@@ -173,8 +173,6 @@ class email_form extends moodleform {
 
         $mform->addElement('static', 'selectors', '', html_writer::table($table));
 
-        $mform->addElement('filemanager', 'attachments', quickmail::_s('attachment'));
-
         $mform->addElement('text', 'subject', quickmail::_s('subject'));
         $mform->setType('subject', PARAM_TEXT);
         $mform->addRule('subject', null, 'required');
@@ -184,6 +182,8 @@ class email_form extends moodleform {
 
         $options = $this->_customdata['sigs'] + array(-1 => 'No '. quickmail::_s('sig'));
         $mform->addElement('select', 'sigid', quickmail::_s('signature'), $options);
+
+        $mform->addElement('filemanager', 'attachments', quickmail::_s('attachment'));
 
         $radio = array(
             $mform->createElement('radio', 'receipt', '', get_string('yes'), 1),
