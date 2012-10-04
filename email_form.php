@@ -172,7 +172,6 @@ class email_form extends moodleform {
         }
 
         $mform->addElement('static', 'selectors', '', html_writer::table($table));
-
         $mform->addElement('text', 'subject', quickmail::_s('subject'));
         $mform->setType('subject', PARAM_TEXT);
         $mform->addRule('subject', null, 'required');
@@ -183,7 +182,10 @@ class email_form extends moodleform {
         $options = $this->_customdata['sigs'] + array(-1 => 'No '. quickmail::_s('sig'));
         $mform->addElement('select', 'sigid', quickmail::_s('signature'), $options);
 
-        $mform->addElement('filemanager', 'attachments', quickmail::_s('attachment'));
+        $mform->addElement(
+            'filemanager', 'attachments', quickmail::_s('attachment'),
+            null, array('subdirs' => 1, 'accepted_types' => '*')
+        );
 
         $radio = array(
             $mform->createElement('radio', 'receipt', '', get_string('yes'), 1),
