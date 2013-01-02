@@ -9,6 +9,10 @@ class block_quickmail extends block_list {
         $this->title = quickmail::_s('pluginname');
     }
 
+    function has_config() {
+        return true;
+    }
+
     function applicable_formats() {
         return array('site' => false, 'my' => false, 'course-view' => true);
     }
