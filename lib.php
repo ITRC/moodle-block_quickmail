@@ -1,7 +1,7 @@
 <?php
-
+//
 // Written at Louisiana State University
-
+// 
 abstract class quickmail {
     public static function _s($key, $a = null) {
         return get_string($key, 'block_quickmail', $a);
@@ -159,8 +159,7 @@ abstract class quickmail {
     static function attachment_names($draft) {
         global $USER;
 
-        $usercontext = get_context_instance(CONTEXT_USER, $USER->id);
-
+        $usercontext = context_user::instance($USER->id);
         $fs = get_file_storage();
         $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draft, 'id');
 
@@ -198,6 +197,11 @@ abstract class quickmail {
             $receipt = get_config($m, 'block_quickmail_receipt');
             $ferpa = get_config($m, 'block_quickmail_ferpa');
 
+            // Convert Never (-1) to No (0) in case site config is changed.
+            if ($allowstudents == -1) {
+                $allowstudents = 0;
+            }
+            
             $config = array(
                 'allowstudents' => $allowstudents,
                 'roleselection' => $roleselection,
@@ -205,6 +209,14 @@ abstract class quickmail {
                 'receipt' => $receipt,
                 'ferpa' => $ferpa
             );
+            
+        } else {
+             // See if allow students is disabled at the site level.
+             $allowstudents = get_config('moodle', 'block_quickmail_allowstudents');
+             if ($allowstudents == -1) {
+                 $config['allowstudents'] = 0;
+             }
+                 $config['ferpa'] = get_config('moodle', 'block_quickmail_ferpa');    
         }
 
         return $config;
@@ -232,7 +244,7 @@ abstract class quickmail {
         }
     }
 
-    function delete_dialog($courseid, $type, $typeid) {
+    static function delete_dialog($courseid, $type, $typeid) {
         global $CFG, $DB, $USER, $OUTPUT;
 
         $email = $DB->get_record('block_quickmail_'.$type, array('id' => $typeid));
@@ -248,13 +260,21 @@ abstract class quickmail {
 
         $table = new html_table();
         $table->head = array(get_string('date'), quickmail::_s('subject'));
+        if($courseid ==1 ) {
+           $table->data = array(
+           new html_table_row(array(
+           new html_table_cell(quickmail::format_time($email->time)),
+           new html_table_cell($email->subject))
+           )
+         );
+        } else {
         $table->data = array(
             new html_table_row(array(
                 new html_table_cell(quickmail::format_time($email->time)),
                 new html_table_cell($email->subject))
             )
-        );
-
+           );
+        }
         $msg = quickmail::_s('delete_confirm', html_writer::table($table));
 
         $html = $OUTPUT->confirm($msg, $optionyes, $optionno);
@@ -270,18 +290,25 @@ abstract class quickmail {
 
         $params = array('courseid' => $courseid, 'userid' => $userid);
         $logs = $DB->get_records($dbtable, $params,
-            'time DESC', '*', $page * $perpage, $perpage * ($page + 1));
-
-        $table->head= array(get_string('date'), quickmail::_s('subject'),
-            quickmail::_s('attachment'), get_string('action'));
-
+            'time DESC', '*', $page * $perpage, $perpage);
+        if($courseid == '1'){
+            $table->head= array(get_string('date'), quickmail::_s('subject'),get_string('action'), quickmail::_s('status'), quickmail::_s('failed_to_send_to'),quickmail::_s('send_again'));
+        }
+        else{
+            $table->head= array(get_string('date'), quickmail::_s('subject'),
+                quickmail::_s('attachment'), get_string('action'), quickmail::_s('status'), quickmail::_s('failed_to_send_to'),quickmail::_s('send_again'));        
+        }
+        
         $table->data = array();
-
         foreach ($logs as $log) {
+            $array_of_failed_user_ids = array();
             $date = quickmail::format_time($log->time);
             $subject = $log->subject;
             $attachments = $log->attachment;
-
+            if( ! empty($log->failuserids) ){
+            // DWE -> keep track of user ids that failed. 
+                $array_of_failed_user_ids = explode(",",$log->failuserids);
+            }
             $params = array(
                 'courseid' => $log->courseid,
                 'type' => $type,
@@ -289,11 +316,18 @@ abstract class quickmail {
             );
 
             $actions = array();
-
+            if($courseid == '1'){
+                $open_link = html_writer::link(
+                new moodle_url('/blocks/quickmail/admin_email.php', $params),
+                $OUTPUT->pix_icon('i/search', 'Open Email')
+            ); 
+            }
+            else{
             $open_link = html_writer::link(
                 new moodle_url('/blocks/quickmail/email.php', $params),
                 $OUTPUT->pix_icon('i/search', 'Open Email')
             );
+            }
             $actions[] = $open_link;
 
             if ($can_delete) {
@@ -304,19 +338,52 @@ abstract class quickmail {
 
                 $delete_link = html_writer::link (
                     new moodle_url('/blocks/quickmail/emaillog.php', $delete_params),
-                    $OUTPUT->pix_icon("i/cross_red_big", "Delete Email")
+                    $OUTPUT->pix_icon("i/invalid", "Delete Email")
                 );
 
                 $actions[] = $delete_link;
             }
 
             $action_links = implode(' ', $actions);
+            
+            $statusSENTorNot = quickmail::_s($type."success");
+            
+            if ( ! empty ($array_of_failed_user_ids) ){
+                $statusSENTorNot = quickmail::_s('message_failure');
+                $params += array(
+                    'fmid' => 1,
+                );
+                $text = quickmail::_s('send_again');            
+                
+                if($courseid == '1'){
+                    $sendagain = html_writer::link(new moodle_url("/blocks/quickmail/admin_email.php", $params), $text);
+                }else{
+                    $sendagain = html_writer::link(new moodle_url("/blocks/quickmail/email.php", $params), $text);
+                }
+                $listFailIDs = count($array_of_failed_user_ids);
+                
+                $failCount =  (($listFailIDs === 1) ?  $listFailIDs . " " . quickmail::_s("user") :  $listFailIDs . " " . quickmail::_s("users"));         
 
-            $table->data[] = array($date, $subject, $attachments, $action_links);
-        }
+            }
+
+            else{
+                
+                $listFailIDs = $array_of_failed_user_ids;
+                $sendagain = "";
+                $failCount = "";
+            }
+            
+
+            if ($courseid == 1) {
+                $table->data[] = array($date, $subject, $action_links, $statusSENTorNot, $failCount, $sendagain);
+            } else {
+                 $table->data[] = array($date, $subject, $attachments, $action_links, $statusSENTorNot,$failCount,$sendagain);
+             }        
+             
+            }
 
         $paging = $OUTPUT->paging_bar($count, $page, $perpage,
-            '/blocks/quickmail/emaillog.php?type='.$type.'&amp;courseid='.$courseid);
+            '/blocks/quickmail/emaillog.php?type='.$type.'&amp;courseid='.$courseid.'&userid='.$userid);
 
         $html = $paging;
         $html .= html_writer::table($table);
@@ -330,18 +397,23 @@ abstract class quickmail {
      * @return array of sparse user objects
      */
     public static function get_all_users($context){
-        global $DB;
+        global $DB, $CFG;
         // List everyone with role in course.
         //
         // Note that users with multiple roles will be squashed into one
         // record.
-
-        $sql = "SELECT DISTINCT u.id, u.firstname, u.lastname,
+        $get_name_string = 'u.firstname, u.lastname';
+        
+        if($CFG->version >= 2013111800){
+               $get_name_string = get_all_user_name_fields(true, 'u');
+        }
+        $sql = "SELECT DISTINCT u.id, " . $get_name_string . ",
         u.email, u.mailformat, u.suspended, u.maildisplay
         FROM {role_assignments} ra
         JOIN {user} u ON u.id = ra.userid
         JOIN {role} r ON ra.roleid = r.id
         WHERE (ra.contextid = ? ) ";
+        
         $everyone = $DB->get_records_sql($sql, array($context->id));
         
         return $everyone;
@@ -357,13 +429,20 @@ abstract class quickmail {
      * @param $courseid the course id
      */
     public static function get_non_suspended_users($context, $courseid){
-        global $DB;
+        global $DB, $CFG;
         $everyone = self::get_all_users($context);
-        $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.mailformat, u.suspended, u.maildisplay, ue.status  
-            FROM {user} as u  
-                JOIN {user_enrolments} as ue                 
+        
+        $get_name_string = 'u.firstname, u.lastname';
+        
+        if($CFG->version >= 2013111800){
+               $get_name_string = get_all_user_name_fields(true, 'u');
+        }
+
+        $sql = "SELECT u.id, " . $get_name_string . " , u.email, u.mailformat, u.suspended, u.maildisplay, ue.status  
+            FROM {user} u  
+                JOIN {user_enrolments} ue                 
                     ON u.id = ue.userid 
-                JOIN {enrol} as en
+                JOIN {enrol} en
                     ON en.id = ue.enrolid                     
                 WHERE en.courseid = ?
                     AND ue.status = ?
@@ -393,6 +472,26 @@ abstract class quickmail {
 
         return $evryone_not_suspended;
     }
+    
+     public static function clean($failuserids){
+         $additional_emails = array();
+         $failuserids = explode(',', $failuserids);        
+     
+         foreach ($failuserids as $id => $failed_address_or_id) {
+             if ( ! is_numeric($failed_address_or_id)) {
+                 $additional_emails [] = $failed_address_or_id;
+                 
+                  
+                 unset($failuserids[$id]);
+             }
+         }
+         
+         $additional_emails = implode(',', $additional_emails);
+         $mailto            = implode(',', $failuserids);
+ 
+         return array($mailto, $additional_emails);
+     }
+   
 }
 
 function block_quickmail_pluginfile($course, $record, $context, $filearea, $args, $forcedownload) {

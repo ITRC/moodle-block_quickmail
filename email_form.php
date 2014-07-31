@@ -3,6 +3,7 @@
 // Written at Louisiana State University
 
 require_once($CFG->libdir . '/formslib.php');
+$PAGE->requires->js('/blocks/quickmail/validation.js');
 
 class email_form extends moodleform {
     private function reduce_users($in, $user) {
@@ -26,13 +27,17 @@ class email_form extends moodleform {
     private function option_value($user) {
         $users_to_groups = $this->_customdata['users_to_groups'];
         $users_to_roles = $this->_customdata['users_to_roles'];
-
         $only_sn = function($role) { return $role->shortname; };
-
-        $roles = implode(',', array_map($only_sn, $users_to_roles[$user->id]));
+        if(!is_numeric($user->id)) { 
+           $roles = NULL;
+        } else { 
+            $roles = implode(',', array_map($only_sn, $users_to_roles[$user->id]));
+        }
 
         // everyone defaults to none
+        if(is_numeric($user->id)) {
         $roles .= ',none';
+        }
 
         if (empty($users_to_groups[$user->id])) {
             $groups = 0;
@@ -41,7 +46,7 @@ class email_form extends moodleform {
             $groups = implode(',', array_map($only_id, $users_to_groups[$user->id]));
             $groups .= ',all';
         }
-
+            $groups .= ',1';
         return sprintf("%s %s %s", $user->id, $groups, $roles);
     }
 
@@ -77,7 +82,7 @@ class email_form extends moodleform {
             $group_options[$group->id] = $group->name;
         }
         $group_options[0] = quickmail::_s('no_section');
-
+        $group_options[1] = "All Users";
         $user_options = array();
         foreach ($this->_customdata['users'] as $user) {
             $user_options[$this->option_value($user)] = $this->option_display($user);
@@ -92,8 +97,8 @@ class email_form extends moodleform {
         $draft_link = html_writer::link ($gen_url('drafts'), quickmail::_s('drafts'));
         $links[] =& $mform->createElement('static', 'draft_link', '', $draft_link);
 
-        $context = get_context_instance(CONTEXT_COURSE, $COURSE->id);
-
+        $context = context_course::instance($COURSE->id);
+        
         $config = quickmail::load_config($COURSE->id);
 
         $can_send = (
@@ -113,10 +118,10 @@ class email_form extends moodleform {
         $table = new html_table();
         $table->attributes['class'] = 'emailtable';
 
-        $selected_required_label = new html_table_cell();
-        $selected_required_label->text = html_writer::tag('strong',
-            quickmail::_s('selected') . $req_img, array('class' => 'required'));
-
+        $selected_label = new html_table_cell();
+        $selected_label->text = html_writer::tag('strong',
+            quickmail::_s('selected') . " ");
+        
         $role_filter_label = new html_table_cell();
         $role_filter_label->colspan = "2";
         $role_filter_label->text = html_writer::tag('div',
@@ -164,7 +169,12 @@ class email_form extends moodleform {
             array('id' => 'from_users', 'multiple' => 'multiple', 'size' => 10))
         );
 
-        $table->data[] = new html_table_row(array($selected_required_label, $role_filter_label));
+        
+        // DWE -> NON REQUIRED VERSION
+        $table->data[] = new html_table_row(array($selected_label, $role_filter_label));
+
+        
+        //$table->data[] = new html_table_row(array($selected_required_label, $role_filter_label));
         $table->data[] = new html_table_row(array($select_filter, $center_buttons, $filters));
 
         if (has_capability('block/quickmail:allowalternate', $context)) {
@@ -181,6 +191,16 @@ class email_form extends moodleform {
         }
 
         $mform->addElement('static', 'selectors', '', html_writer::table($table));
+        
+        $mform->addElement('text', 'additional_emails', quickmail::_s('additional_emails'), array('style'=>'width: 50%;'));
+        $mform->setType('additional_emails', PARAM_TEXT);                
+        $mform->addRule('additional_emails', 'One or more email addresses is invalid', 'callback', 'mycallback', 'client');
+        $mform->addHelpButton('additional_emails', 'additional_emails', 'block_quickmail');
+        $mform->addElement(
+            'filemanager', 'attachments', quickmail::_s('attachment'),
+            null, array('subdirs' => 1, 'accepted_types' => '*')
+        );
+
         $mform->addElement('text', 'subject', quickmail::_s('subject'));
         $mform->setType('subject', PARAM_TEXT);
         $mform->addRule('subject', null, 'required');

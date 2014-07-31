@@ -19,7 +19,7 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
     print_error('no_course', 'block_quickmail', '', $courseid);
 }
 
-$context = get_context_instance(CONTEXT_COURSE, $courseid);
+$context = context_course::instance($courseid);
 
 // Has to be in on of these
 if (!in_array($type, array('log', 'drafts'))) {
@@ -65,7 +65,6 @@ $PAGE->navbar->add($blockname);
 $PAGE->navbar->add($header);
 $PAGE->set_title($blockname . ': ' . $header);
 $PAGE->set_heading($blockname . ': ' . $header);
-$PAGE->set_url('/course/view.php', array('id' => $courseid));
 $PAGE->set_pagetype($blockname);
 
 $dbtable = 'block_quickmail_' . $type;
@@ -90,28 +89,44 @@ switch ($action) {
         $html = quickmail::list_entries($courseid, $type, $page, $perpage, $userid, $count, $can_delete);
 }
 
-$html.= html_writer::link(
-    new moodle_url(
+if($courseid == 1) {
+    $html.= html_writer::link(
+        new moodle_url('/blocks/quickmail/admin_email.php'),
+        quickmail::_s('composenew')
+     );
+} else {
+    $html.= html_writer::link(
+        new moodle_url(
             '/blocks/quickmail/email.php', 
             array('courseid' => $courseid)),
-    quickmail::_s('composenew')
-);
+        quickmail::_s('composenew')
+    );
+}
 
 if($canimpersonate and $USER->id != $userid) {
     $user = $DB->get_record('user', array('id' => $userid));
+    // http://docs.moodle.org/dev/Additional_name_fields
     $header .= ' for '. fullname($user);
+
+    
 }
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($header);
 
 if($canimpersonate) {
-    $sql = "SELECT DISTINCT(l.userid), u.firstname, u.lastname
+    
+    $get_name_string = 'u.firstname, u.lastname';
+
+    if($CFG->version >= 2013111800){
+        $get_name_string = get_all_user_name_fields(true, 'u');
+    }
+    $sql = "SELECT DISTINCT(l.userid)," . $get_name_string . "
                 FROM {block_quickmail_$type} l,
                      {user} u
                 WHERE u.id = l.userid AND courseid = ? ORDER BY u.lastname";
-    $users = $DB->get_records_sql($sql, array($courseid));
 
+    $users = $DB->get_records_sql($sql, array($courseid));    
     $user_options = array_map(function($user) { return fullname($user); }, $users);
 
     $url = new moodle_url('emaillog.php', array(
@@ -127,7 +142,11 @@ if($canimpersonate) {
 if(empty($count)) {
     echo $OUTPUT->notification(quickmail::_s('no_'.$type));
 
-    echo $OUTPUT->continue_button('/blocks/quickmail/email.php?courseid='.$courseid);
+    if ($COURSE->id == 1) {
+        echo $OUTPUT->continue_button('/blocks/quickmail/admin_email.php?courseid='.$courseid);
+    } else {
+        echo $OUTPUT->continue_button('/blocks/quickmail/email.php?courseid='.$courseid);
+    }
 
     echo $OUTPUT->footer();
     exit;

@@ -4,7 +4,7 @@
 
 require_once '../../config.php';
 require_once 'lib.php';
-require_once 'config_form.php';
+require_once 'config_qm_form.php';
 
 require_login();
 
@@ -15,7 +15,7 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
     print_error('no_course', 'block_quickmail', '', $courseid);
 }
 
-$context= get_context_instance(CONTEXT_COURSE, $courseid);
+$context = context_course::instance($courseid);
 
 require_capability('block/quickmail:canconfig', $context);
 
@@ -24,7 +24,7 @@ $header = quickmail::_s('config');
 
 $PAGE->set_context($context);
 $PAGE->set_course($course);
-$PAGE->set_url('/blocks/quickmail/config.php', array('courseid' => $courseid));
+$PAGE->set_url('/blocks/quickmail/config_qm.php', array('courseid' => $courseid));
 $PAGE->set_title($blockname . ': '. $header);
 $PAGE->set_heading($blockname. ': '. $header);
 $PAGE->navbar->add($header);
