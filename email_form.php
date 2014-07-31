@@ -196,10 +196,6 @@ class email_form extends moodleform {
         $mform->setType('additional_emails', PARAM_TEXT);                
         $mform->addRule('additional_emails', 'One or more email addresses is invalid', 'callback', 'mycallback', 'client');
         $mform->addHelpButton('additional_emails', 'additional_emails', 'block_quickmail');
-        $mform->addElement(
-            'filemanager', 'attachments', quickmail::_s('attachment'),
-            null, array('subdirs' => 1, 'accepted_types' => '*')
-        );
 
         $mform->addElement('text', 'subject', quickmail::_s('subject'));
         $mform->setType('subject', PARAM_TEXT);
