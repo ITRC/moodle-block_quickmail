@@ -121,19 +121,14 @@ class email_form extends moodleform {
         $table = new html_table();
         $table->attributes['class'] = 'emailtable';
 
-        $selected_label = new html_table_cell();
-        $selected_label->text = html_writer::tag('strong',
-            quickmail::_s('selected') . " ");
-
-        $role_filter_label = new html_table_cell();
-        $role_filter_label->colspan = "2";
-        $role_filter_label->text = html_writer::tag('div',
-            quickmail::_s('role_filter'), array('class' => 'object_labels'));
 
         $select_filter = new html_table_cell();
-        $select_filter->text = html_writer::tag('select',
-            array_reduce($this->_customdata['selected'], array($this, 'reduce_users'), ''),
-            array('id' => 'mail_users', 'multiple' => 'multiple', 'size' => 30));
+
+        /* ISU - Move label, shorten select boxes */
+        $select_filter->text = 
+            html_writer::tag('div', quickmail::_s('selected'), array('class' => 'object_labels')) .
+            html_writer::tag('select', array_reduce($this->_customdata['selected'], 
+                array($this, 'reduce_users'), ''), array('id' => 'mail_users', 'multiple' => 'multiple', 'size' => 19));
 
         $embed = function ($text, $id) {
             return html_writer::tag('p',
@@ -156,28 +151,18 @@ class email_form extends moodleform {
         );
 
         $filters = new html_table_cell();
-        $filters->text = html_writer::tag('div',
-            html_writer::select($role_options, '', 'none', null, array('id' => 'roles'))
-        ) . html_writer::tag('div',
-            quickmail::_s('potential_sections'),
-            array('class' => 'object_labels')
-        ) . html_writer::tag('div',
-            html_writer::select($group_options, '', 'all', null,
-            array('id' => 'groups', 'multiple' => 'multiple', 'size' => 5))
-        ) . html_writer::tag('div',
-            quickmail::_s('potential_users'),
-            array('class' => 'object_labels')
-        ) . html_writer::tag('div',
-            html_writer::select($user_options, '', '', null,
-            array('id' => 'from_users', 'multiple' => 'multiple', 'size' => 20))
-        );
+
+        /* ISU - move role header, shorten select boxes */
+        $filters->text = 
+            html_writer::tag('div', quickmail::_s('role_filter'), array('class' => 'object_labels')) .
+            html_writer::tag('div', html_writer::select($role_options, '', 'none', null, array('id' => 'roles'))) . 
+            html_writer::tag('div', quickmail::_s('potential_sections'), array('class' => 'object_labels')) . 
+            html_writer::tag('div', html_writer::select($group_options, '', 'all', null, array('id' => 'groups', 'multiple' => 'multiple', 'size' => 3))) . 
+            html_writer::tag('div', quickmail::_s('potential_users'), array('class' => 'object_labels')) . 
+            html_writer::tag('div', html_writer::select($user_options, '', '', null, array('id' => 'from_users', 'multiple' => 'multiple', 'size' => 10)));
 
 
-        // DWE -> NON REQUIRED VERSION
-        $table->data[] = new html_table_row(array($selected_label, $role_filter_label));
 
-
-        //$table->data[] = new html_table_row(array($selected_required_label, $role_filter_label));
         $table->data[] = new html_table_row(array($select_filter, $center_buttons, $filters));
 
         if (has_capability('block/quickmail:allowalternate', $context)) {
@@ -201,10 +186,6 @@ class email_form extends moodleform {
         $mform->addRule('additional_emails', 'One or more email addresses is invalid', 'callback', 'block_quickmail_mycallback', 'client');
         $mform->addHelpButton('additional_emails', 'additional_emails', 'block_quickmail');
         }
-        $mform->addElement(
-            'filemanager', 'attachments', quickmail::_s('attachment'),
-            null, array('subdirs' => 1, 'accepted_types' => '*')
-        );
 
         $mform->addElement('text', 'subject', quickmail::_s('subject'));
         $mform->setType('subject', PARAM_TEXT);
@@ -214,6 +195,12 @@ class email_form extends moodleform {
 
         $options = $this->_customdata['sigs'] + array(-1 => 'No '. quickmail::_s('sig'));
         $mform->addElement('select', 'sigid', quickmail::_s('signature'), $options);
+
+        // ISU - Move attachment element below message, for consistency.
+        $mform->addElement(
+            'filemanager', 'attachments', quickmail::_s('attachment'),
+            null, array('subdirs' => 1, 'accepted_types' => '*')
+        );
 
         $radio = array(
             $mform->createElement('radio', 'receipt', '', get_string('yes'), 1),
