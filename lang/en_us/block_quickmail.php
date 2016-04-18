@@ -24,12 +24,12 @@ $string['add_button'] = 'Add';
 $string['remove_button'] = 'Remove';
 $string['add_all'] = 'Add All';
 $string['remove_all'] = 'Remove All';
-$string['role_filter'] = 'Role Filter';
-$string['no_filter'] = 'No filter';
+$string['role_filter'] = 'Role'; /* ISU */
+$string['no_filter'] = 'All Participants'; /* ISU */
 $string['potential_users'] = 'Potential Recipients';
-$string['potential_sections'] = 'Potential Sections';
-$string['no_section'] = 'Not in a section';
-$string['all_sections'] = 'All Sections';
+$string['potential_sections'] = 'Potential Groups'; /* ISU */
+$string['no_section'] = 'Not in a group'; /* ISU */
+$string['all_sections'] = 'All Groups'; /* ISU */
 $string['attachment'] = 'Attachment(s)';
 $string['subject'] = 'Subject';
 $string['message'] = 'Message';
@@ -48,7 +48,7 @@ $string['receipt_help'] = 'Receive a copy of the email being sent';
 $string['no_alternates'] = 'No alternate emails found for {$a->fullname}. Continue to make one.';
 
 $string['select_users'] = 'Select Users ...';
-$string['select_groups'] = 'Select Sections ...';
+$string['select_groups'] = 'Select Groups ...'; /* ISU */
 
 $string['moodle_attachments'] = 'Moodle Attachments ({$a})';
 $string['download_all'] = 'Download All';
@@ -81,7 +81,7 @@ $string['required'] = 'Please fill in the required fields.';
 $string['prepend_class'] = 'Prepend Course name';
 $string['prepend_class_desc'] = 'Prepend the course shortname to the subject of
 the email.';
-$string['ferpa'] = 'FERPA Mode';
+$string['ferpa'] = 'Group Mode'; /* ISU */
 $string['ferpa_desc'] = 'Allows the system to behave either according to the course groupmode setting, ignoring the groupmode setting but separating groups, or ignoring groups altogether.';
 $string['strictferpa'] = 'Always Separate Groups';
 $string['courseferpa'] = 'Respect Course Mode';
