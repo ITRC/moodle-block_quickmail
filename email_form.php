@@ -145,7 +145,7 @@ class email_form extends moodleform {
         $select_filter->text = html_writer::tag('div', quickmail::_s('selected'), array('class' => 'object_labels')) .
         $select_filter->text = html_writer::tag('select',
             array_reduce($this->_customdata['selected'], array($this, 'reduce_users'), ''),
-            array('id' => 'mail_users', 'class' => 'select custom-select menu', 'multiple' => 'multiple', 'size' => 30));
+            array('id' => 'mail_users', 'class' => 'select custom-select menu', 'multiple' => 'multiple', 'size' => 20));
 
         $embed = function ($text, $id) {
             return html_writer::tag('p',
