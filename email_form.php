@@ -140,17 +140,14 @@ class email_form extends moodleform {
 
 
         $select_filter = new html_table_cell();
-
-        /* ISU - Move label, shorten select boxes */
-        $select_filter->text = 
-            html_writer::tag('div', quickmail::_s('selected'), array('class' => 'object_labels')) .
-            html_writer::tag('select', array_reduce($this->_customdata['selected'], 
-                array($this, 'reduce_users'), ''), array('id' => 'mail_users', 'multiple' => 'multiple', 'size' => 19));
+        $select_filter->text = html_writer::tag('select',
+            array_reduce($this->_customdata['selected'], array($this, 'reduce_users'), ''),
+            array('id' => 'mail_users', 'class' => 'select custom-select menu', 'multiple' => 'multiple', 'size' => 30));
 
         $embed = function ($text, $id) {
             return html_writer::tag('p',
                 html_writer::empty_tag('input', array(
-                    'value' => $text, 'type' => 'button', 'id' => $id
+                    'value' => $text, 'type' => 'button', 'class' => 'btn btn-secondary' , 'id' => $id
                 ))
             );
         };
